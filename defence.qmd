@@ -24,6 +24,14 @@ raw <- readRDS("data/raw_dat.rds")
 spill_vol <- readRDS("data/spillover_vols.rds")
 spill_rtn <- readRDS("data/spillover_rtns.rds")
 static <- readRDS("data/static.rds")
+refinitiv<-readRDS("data/refinitiv.rds")
+docxtractr::read_docx(path = "spilloverV3.docx")-> spill_doc
+spill_doc %>% docxtractr::docx_extract_all_tbls() %>% {.[[29]]}->sample_dat
+refinitiv %>% 
+  mutate(Our_Study=if_else(RIC %in% sample_dat$Identifier.RIC,"This Study","Rest of A&D industry")) |>
+  group_by(Our_Study) |>
+  summarise(sum=sum(MktCap,na.rm = T)) -> sums
+round(100*sums$sum[2]/sum(sums$sum))
 width=9
 height=6
 spill_rtn$to50 %>% {unique(.$Stock)}->stock_names
@@ -51,101 +59,34 @@ dat %>% left_join(country_of_origin,by="stock")->dat
 
 
 ## Abstract {.unnumbered}
-This paper analyses a system of return and volatility spillovers  among 21 global defense and aerospace (A&D) companies covering six countries, namely the United States (US), United Kingdom (UK), France, Germany, China and Singapore, across three continents from August, 2010 to July 1, 2022 using quantile-based models. The results show that both return and volatility spillover measures are not stable over time, and those estimated at normal market conditions (at the middle quantile), intensify during crisis periods such as the COVID-19 outbreak. There is also evidence of intensified spillover effects for return shocks at both lower and upper quantiles, which exceed the return spillover estimated at the middle quantile, thus indicating significantly different behavior across different market conditions. The level of spillovers at the lower quantile in the return system is considerably larger than that in the volatility system, but the level of volatility spillover is extremely high at the upper quantile only and exhibits low variability. There is also evidence of differences between the companies analysed. For example, Chinese defense stocks seem segmented from the rest of defense stocks under normal return conditions and moderate volatility state, but they somewhat integrated with global defense stocks under extreme return condition and volatility state. This suggests that they are not valuable investments for portfolio diversification under substantial bear or bull markets when returns and volatility are extremely low or high. Further analysis of the drivers of returns and volatility spillovers reveals that geopolitical risk consistently plays a significant role, especially during the pandemic and war period, without ignoring the importance of macro-economic and financial variables. These results have implications for investors concerned with the management of their stock portfolio under various market conditions and policymakers seeking to design policies under normal and volatile market mechanisms.
+This paper analyses return and volatility spillovers among 21 global aerospace and defence (A&D) companies from six countries and three continents using quantile-based models and daily data from August 23, 2010, to July 1, 2022. The results show that both return and volatility spillovers vary over time, and those estimated at normal market conditions, intensify during COVID-19 and Russia-Ukraine war periods. Spillovers of returns estimated at lower and upper quantiles exceed those estimated at the middle quantile. Volatility spillover is extremely high at the upper quantile and exhibits low variability. Chinese defence stocks are segmented from the rest under normal return conditions and a moderate volatility state. In contrast, they are somewhat integrated under extreme return conditions and volatility states. Hence, Chinese defence stocks entail more diversification benefits under normal conditions than in bear or bull markets. Further analysis shows that geopolitical risk consistently plays a significant role in driving both returns and volatility spillovers, especially during the pandemic and war periods, without ignoring the role of macroeconomic and financial variables. These results have implications for investors concerned with stock portfolio management under various return and volatility conditions and for policymakers preoccupied with policy design under unstable periods
 
 **keywords:** Aerospace and defence companies; Ukrainian war; Russia; quantile vector-autoregression; COVID-19.
 
 # Introduction
 
+On 24 February 2022, the mounting tension between Russia and Ukraine peaked, instigating a brutal war that has led to wide-scale devastation, especially in Europe, the consequences of which will be felt far into the future. While the humanitarian effects are almost incomprehensible, this destructive war has substantially affected the commodity markets, notably energy and grain prices, the global economy, the financial markets, and the fortunes of defence companies. There appears to be no end to the war, and the spending on defence has experienced a notable increase globally. In 2022, global military expenditure surpassed $US 2.2 trillion for the first time. Large increases in military spending are noticed in Europe in response to the Russia-Ukraine war. To top the chart, the United States (US) spent the most on military spending ($US 877 billion), followed by China ($US 292 billion), Russia ($US 86.0 billion), India ($US 81.0 billion), Saudi Arabia ($US 75.0 billion), the United Kingdom (UK) ($US 69.0 billion), Germany ($US 56.0 billion), and France (($US 54.0 billion)
+
 On 24 February 2022, Russia attacked Ukraine, initiating a war that has led to wide scale devastation, especially in Europe, the consequences of which will be felt far into the future. While the humanitarian effects are almost incomprehensible, this destructive event has also substantially affected financial markets, the global economy, energy and grain prices, and the fortunes of defense companies. There unfortunately appears to be no end in sight for the war and increases in spending on defense continued to increase globally. In 2022 global military expenditure surpassed \$US 2 trillion for the first time ([World military expenditure passes \$2 trillion for first time according to SIPRI](https://www.sipri.org/media/press-release/2022/world-military-expenditure-passes-2-trillion-first-time)). During the same year, the United States (US) spent the most on military spending (\$US 750 billion), followed by China (\$US 237 billion), Saudi Arabia (\$US 67.6 billion), India (\$US 61 billion) and the United Kingdom (UK) (\$US 55.1 billion).[^1]
 
-[^1]: Defence spending by country according to \<https://worldpopulationreview.com\>
+[^1]:Data are according to Stockholm International Peace Research Institute (<https://sipri.org/>)
 
-This defence spending has seen the global aerospace and defence (A&D) industry outperform in public markets. According to Refinitiv Eikon, year to January 2023, the total return of the A&D industry equated to 13.89%, compared to -3.45% for the global equity markets. This is despite their average total market capitalisation being 1% of the global equity markets. Total revenues of the last twelve months were \$US 665 billion, with the top 20 largest companies by revenue capturing 75% of this total revenue (See Appendix for detailed Market Analysis). Merger and acquisition activity in the A&D industry was also high with 361 deals with a total value including Net Debt of US 36 billion[^2]. Given their outsize recent market performance, our study investigates the network topology of the risk and return characteristics of the A&D industry using a representative subset of the 351 publicly listed securities (See . We explicitly consider the transmission pathway from one to another under various market conditions.
+This defence spending has seen the global aerospace and defence (A&D) industry outperforms the equity markets. According to Refinitiv Eikon, for the year ending 31/12/2022, the total return of the A&D industry equated to 13.89%, compared to -3.45% for the global equity markets. This is even though the average total market capitalisation of A&D companies represents only 1% of the global equity markets. Total revenues of the year ending 31/12/2022 were \$US 665 billion[^2], with the top 21 largest companies by revenue capturing 75% of this total revenue (See Appendix Table A1 for detailed Market Analysis). Merger and acquisition activity in the A&D industry was also high, with 361 deals with a total value, including Net Debt, of \$US 36 billion. Given the Russia and Ukraine war and the outsize recent market performance of many A&D companies, our study investigates the network topology of the return and volatility spillovers among major companies from the global A&D industry and the factors that drive these spillovers. Using a quantile-based approach to spillovers, we explicitly consider the transmission pathway of return and volatility from one company to another under various market return conditions and volatility states. Furthermore, we conduct various regressions to understand the role of geopolitical risk in driving return and volatility spillovers while considering various macroeconomic and financial variables. 
 
-[^2]: All market analysis was conducted using Refinitiv Eikon on 22/02/2023. The A&D sample consisted of 351 publicly listed securities with a total market capitalisation of 1.37 trillion dollars. The global equity market capitalisation at this time was 118 trillion dollars.
+[^2]: All market analysis was conducted using Refinitiv Eikon on 22/02/2023. The A&D sample consisted of 351 publicly listed securities with a total market capitalisation of \$1.37 trillion dollars. The global equity market capitalisation at this time was 118 trillion dollars.
 
-Surprisingly, the related literature is limited in this regard. Studies on the A&D industry date back at least as far as the 1960s, mainly focusing on the investment quality of companies in this sector [@butler1966; @butler1966a; @butler1967] and their profits and market performance [@agapos1970; @suarez1976; @bohi1973]. @mcdonald2011 analyse the effects of war on the U.S. defense industry, focusing on 16 firms that provided military equipment to the Department of defense. Applying a cumulative prediction error (CPE) technique, they find that the stock prices of defense firms tend to increase because of military actions. @Cappelle.2008 analyse the effect of media information, on defense companies only, finding that news relating to earnings announcements and analyst recommendations are significant in terms of explaining abnormal returns for these companies. More recently, @federle2022 analyse stock market responses to the war in Ukraine, finding that firms located closer to Ukraine suffered from a relative *proximity penalty*; experiencing a negative equity returns during the four weeks surrounding the beginning of the war. @le2022Le use war-related news articles to investigate the market response of some companies to the war in Ukraine, finding a negative impact on airlines and a positive impact on the defence market. @zhang2022 utilizes a geopolitical risk index to analyse co-movements between geopolitical risk and returns of global defense and aerospace companies, finding significant co-movements around the onset of the war in Ukraine. This is labelled a 'flight-to-arms' phenomenon, with co-movement found to be significant for more European and US companies in the sample. @kumar2022 highlight the strong performance of many US and European A&D stocks during the Russia-Ukraine war and point to the strong impact of geopolitical risk on the returns and volatility of global A&D companies.
+Surprisingly, the related literature could be more extensive in this regard. Studies on the A&D industry date back at least as far as the 1960s, mainly focusing on the investment quality of companies in this industry (Butler Jr, 1966b, 1966a, 1967) and their profits and market performance (Agapos and Gallaway, 1970; Suarez, 1976; Bohi, 1973). McDonald and Kendall (2011) studied the effects of war on the U.S. defence industry, focusing on 16 firms that provided military equipment to the Department of Defence. Applying a cumulative prediction error (CPE) technique, they find that stock prices of defence firms tend to increase because of military actions. Capelle-Blancard and Couderc (2008) analyse the effect of media information on defence companies only, showing that news relating to earnings announcements and analyst recommendations are significant in explaining abnormal returns for these companies. Recently, Federle et al. (2022) analysed stock market responses to the war in Ukraine, finding that firms closer to Ukraine suffered from a relative proximity penalty, experiencing negative equity returns during the four weeks surrounding the beginning of the war. Le et al. (2023) use war-related news articles to investigate the market response of some companies to the war in Ukraine, showing a negative impact on airline stocks and a positive impact on defence stocks. Zhang et al. (2022) consider the co-movements between geopolitical risk and the returns and volatility of global aerospace and defence companies, indicating significant co-movements around the onset of the war in Ukraine. This is labelled a ‘flight-to-arms’ phenomenon, with co-movement found to be significant for many European and US companies in the sample. 
+This paper contributes to the above body of literature by analysing the network of returns and volatility spillovers across major A&D companies, using a quantile-based connectedness, and covering the drivers of spillovers. First, the flexibility of this connectedness approach allows for accounting for various market return conditions and volatility states. This is an important feature as previous findings highlight the importance of considering the sign of return shocks and size of volatility shocks when studying the spillover effects in the financial markets (see, Bouri et al., 2020; Chatziantoniou et al., 2021; Saeed et al., 2021; Iqbal et al., 2022). This should add to Zhang et al. (2022) and Le et al. (2023), who consider only mean-based models. Second, our sample of 21 A&D companies incorporates eight out of the ten largest in the world by revenue and covers six countries, namely US, UK, France, Germany, China and Singapore, across three continents (North America, Europe, and Asia) over the period August 23, 2010 to July 1, 2022. The period under study covers important events such as the Russian invasion of Crimea in 2014, the COVID-19 pandemic of 2020, and the Russia-Ukraine in 2022, thus enabling the identification of significant spillovers across a varying set of global turbulent market conditions and geopolitical events. Third, analysing the factors driving the return and volatility spillovers across various market conditions constitutes another contribution to the literature on A&D companies (Federle et al., 2022; Le et al., 2023; Zhang et al., 2022). Specifically, it shows the importance of geopolitical risk in driving up the spillover effect of both returns and volatility while accounting for the significance of macroeconomic and financial variables.
+The main results on the spillover effects across various quantiles show intensified spillover effects for both stock returns and volatility under extreme market conditions and evidence of time evolution in the spillovers, especially for lower and upper tails returns. This suggests that the system of spillovers under extreme market conditions, irrespective of whether it is bull or bear market, is unstable. Thus, it should be carefully monitored, given its potential consequences on portfolio and risk management in the A&D industry. An additional analysis involving the drivers of spillovers shows the impact of heightened geopolitical risk around the Russian-Ukraine war period on the return and volatility spillovers across A&D companies in most of the quantiles considered. Furthermore, the level of returns and volatility spillovers is also driven by macroeconomic and financial variables such as corporate credit conditions, stock market volatility, short-term liquidity risk, and real business condition. Therefore, participants in the A&D industry, especially in the US and Europe, should closely examine the global geopolitical environment given its significant impact on the dynamics of information transmission in the A&D industry and, thus, the integration of A&D stocks and the possibilities of diversification. The findings also highlight the tail risk propagation within the network system of aerospace and defence stocks, which should concern risk managers and policymakers. 
+The paper proceeds as follows. Section 2 describes the dataset. Section 3 provides a quantile-based spillover approach. Section 4 presents and discusses the results. Section 5 concludes. 
 
-This paper contributes to this body of academic literature by analyzing the network of returns and volatility spillovers across major A&D companies, using a quantile-based connectedness. The flexibility of this approach provide analysis on various market return conditions and volatility states. Our sample of 21 A&D companies incorporates eight out of the ten largest in the world by revenue and covers six countries namely US, UK, France, Germany, China and Singapore, across three continents (North America, Europe, and Asia) from August 2010 to July 2022. The period under study covers events such as the Russian invasion of Crimea in 2014, the COVID-19 pandemic of 2020, and the invasion of Ukraine in 2022, thus enabling the identification of significant spillovers across a varying set of global geopolitical events. The main results show evidence of intensified spillover effects for both stock returns and volatility under extreme market conditions and time evolution, especially under turbulent periods. Furthermore, we examine the impact of heightened geopolitical around the Russian-Ukraine war period, on the return and volatility spillovers across A&D companies, and show their significant role in driving up the level of spillovers in most of the quantiles considered.
+# Data
 
-The paper proceeds as follows. Section 2 describes the dataset and Section 3 the methodology. Section 4 presents the results and discusses the main findings. Section 5 concludes.rkets, the global economy, energy prices and the fortunes of defence companies.
+Our dataset comprises the daily closing prices of 21 global aerospace and defence companies in six countries (US, UK, France, Germany, China, Singapore) and three continents (North America, Europe, and Asia). The selected companies are chosen to be large and liquid, with an individual market capitalisation exceeding e billion USD. The list of 21 companies is provided in Appendix Table A1. Appendix Figure A1 shows the share our sample captures of the total market capitalisation of the global A&D industry, which represents `r round(100*sums$sum[2]/sum(sums$sum))` \%. The sample period (August 23, 2010 - July 1, 2022) is selected according to the availability of A&D stock price data from Refinitiv DataStream, especially for the Chinese Aecc Aviation Power 'A' because it exhibited many zero price fluctuations at the daily basis before the start of the sample period on 23 August 2010. 
 
-# Data and methodology
+Appendix Figure A2 plots the price series levels and highlights the country of incorporation. Furthermore,  Appendix Figure A3 and Figure A4 display the log-return and volatility series, respectively. The price series levels reveal several distinct groupings in their movements. For many cases, price series levels in Figure A2 show common movement with a regime shift towards higher prices and larger volatility around 2020. Notably, Chinese stocks experienced a shock in 2016 of a similar magnitude to that of 2020. In July 2016, it was reported that China had performed a week of military drills in the South China Sea amid legal debates regarding its territorial claims to regional areas, which could account for this increase in volatility. In Figure A3, we notice a large variability in the returns around the peak of COVID-19 in 2020 and the Russia-Ukraine war in early 2022, especially for most US-European A&D stocks. Based on Figure A4, we observe that the volatility of some A&D companies such as Boeing, Transdigm, Safran, and Rolls-Royce Holdings experienced a spike around the pandemic outbreak and the Russia-Ukraine war.
 
-## Data
-
-Our dataset comprises the daily closing prices of 21 global defence and aerospace companies belonging to six countries (US, UK, France, Germany, China, Singapore) and three continents (North America, Europe, and Asia). The selected companies are chosen to be large and liquid, with an individual market capitalization exceeding nine billion USD. The list of 21 companies is provided in Appendix @tbl-ref.  @fig-mktcapshare shows the share our sample capture of the total market capitalisation of the A&D global sector.
-
-```{r}
-#| label: fig-prices
-#| fig-cap: "Price series levels"
-dat %>%
-  ggplot(aes(x=Date,y=price,color=country)) + geom_line() + 
-  facet_wrap(~stock,scales = "free_y") +
-  theme(text = element_text(size=6),
-        legend.position = "bottom",
-        legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45)) +
-  labs(x="")
-```
-
-@fig-prices plots the price series levels and highlights country of incorporation, whereas @fig-rtns displays the log-return series. The price series levels reveal a number of distinct groupings in their movements. For many cases, price series levels show common movement with a regime shift towards higher prices and larger volatility around 2020. Notably, the Chinese stocks experience a shock in 2016 of similar magnitude to that of 2020. In July 2016 it was reported that China had performed a week of military drills in the South China Sea amid legal debates regarding its territorial claims to areas in the region, which could account for this increase in volatility. Daily volatility is calculated as the squared of daily log-returns and presented in @fig-vols. Notably, the volatility of some A&D companies such as Beoing, Transdigm, Safran, and Rolls-Royce experienced a spike around the pandemic period and the Russia-Ukraine war.
-
-```{r}
-#| label: fig-rtns
-#| fig-cap: "Daily returns"
-dat %>%
-  ggplot(aes(x=Date,y=return,color=country)) + geom_line() + 
-  facet_wrap(~stock) +
-  scale_color_brewer(type='qual',palette = "Set2") +
-  theme(text = element_text(size=6),
-        legend.position = "bottom",
-        legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45)) +
-  labs(x="")
-```
-
-```{r }
-#| label: fig-vols
-#| fig-cap: "Daily Volatilities"
-dat %>%
-  ggplot(aes(x=Date,y=volatility,color=country)) + geom_line() + 
-  facet_wrap(~stock) +
-  scale_color_brewer(type='qual',palette = "Set2") +
-  theme(text = element_text(size=6),
-        legend.position = "bottom",
-        legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45)) +
-  labs(x="")
-```
-
-```{r}
-#| label: tbl-sumrtn
-#| tbl-cap: "Summary statistics of daily returns"
-docxtractr::read_docx(path = "spilloverV3.docx")-> spill_doc
-spill_doc |>
-  docxtractr::docx_extract_all_tbls() %>%
-  {.[[3]]} -> tblsumrtns
-spill_doc |>
-  docxtractr::docx_extract_all_tbls() %>%
-  {.[[4]]} -> tblsumvol
-names(tblsumrtns)[1]<-"A&D Stock"
-tblsumrtns |> kbl(format = "latex",booktabs = TRUE) |> kable_styling(latex_options = c("scale_down","HOLD_position"))
-```
-
-```{r}
-#| label: tbl-sumvol
-#| tbl-cap: "Summary statistics of daily volatilies"
-names(tblsumvol)[1]<-"A&D Stock"
-tblsumvol |> kbl(format = "latex",booktabs = TRUE) |> kable_styling(latex_options = c("scale_down","HOLD_position"))
-```
-
-@tbl-sumrtn and @tbl-sumvol present summary statistics for daily returns and volatility series, respectively. As shown in @tbl-sumrtn, the distributions of the daily returns series are mostly skewed to the left and exhibit fat "tailedness", with Boeing, Airbus, Rolls-Royce, Safran and Transdigm experiencing the highest daily volatility. These companies are either directly in the aviation industry or supply to it, as Rolls-Royce supplies Trent engine to Airbus. Airlines were hit particularly hard during the COVID-19 pandemic, with an estimated economic loss of US\$168 billion in 2020 (COVID-19's impact on the global aviation sector \| McKinsey) which may be a factor in the observed volatility.
-
-@tbl-Xtremes indicates that most volatile A&D stock is Rolls Royce Holdings. The company reported a loss of £4 billion for 2020, and was forced to raise £7.3 billion in debt and equity and cut almost one fifth of its workforce (COVID-19: Rolls-Royce blames 'severe impact' of pandemic as it dives to £4bn loss \| Business News \| Sky News). Unsurprisingly Table 2 indicates that the five highest daily volatility scores mostly occur around the end of March 2020 at the height of the uncertainty during the onset of the COVID-19 pandemic.
-
-For both return and volatility series, the results of Augmented Dickey Fuller (ADF) and Phillips-Perron (PP) tests confirm their stationarity at conventional levels.
+Appendix A2 and Table A3 present summary statistics for daily returns and volatility series, respectively. Notably, Table A2 shows that the distributions of the daily returns series are mostly skewed to the left and exhibit fat “tailedness”, with Airbus, Boeing, Rolls-Royce Holdings, Safran, and Transdigm experiencing the highest daily standard deviation. These companies are either directly in the aviation industry or supply to it, as Rolls-Royce supplies the Trent engine to Airbus. In this regard, airlines were hit particularly hard during the COVID-19 pandemic, with an estimated economic loss of US$168 billion in 2020 (COVID-19’s impact on the global aviation sector \| McKinsey)*LISA add ref please*, which may be a factor in the observed volatility. All return series are stationary, as shown by the Augmented Dickey-Fuller (ADF) and Phillips-Perron (PP) test statistics. The same is true for the volatility series, as reported in Appendix Table A3.
 
 ```{r}
 #| label: tbl-Xtremes
@@ -153,6 +94,9 @@ For both return and volatility series, the results of Augmented Dickey Fuller (A
 dat %>% filter(volatility>0.06) %>% select(!stock_match_name&!price) %>% kbl(digits = 2,format = "latex",booktabs = TRUE) |>
   kable_styling(latex_options="HOLD_position")
 ```
+
+Furthermore, we consider extreme volatility events, which coincide with the peak of the COVID-19 outbreak and indicate in Table 1 that the most volatile A&D stock is Rolls Royce Holdings. The company reported a loss of £4 billion for 2020 and was forced to raise £7.3 billion in debt and equity and cut almost one-fifth of its workforce (COVID-19: Rolls-Royce blames the ‘severe impact’ of the pandemic as it dives to £4bn loss \| Business News \| Sky News)*LISA add ref please*. Unsurprisingly, @tbl-Xtremes indicates that the five highest daily volatility scores mainly occur around the end of March 2020 at the height of the uncertainty during the onset of the COVID-19 pandemic. 
+
 
 ```{r}
 #| label: fig-cor
@@ -436,10 +380,7 @@ By extending our knowledge regarding the effects of the size and sign of the spi
 
 ```{r}
 #| label: tbl-ref
-#| tbl-cap: "Size information for our study's sample"
-refinitiv<-readRDS("data/refinitiv.rds")
-docxtractr::read_docx(path = "spilloverV3.docx")-> spill_doc
-spill_doc %>% docxtractr::docx_extract_all_tbls() %>% {.[[29]]}->sample_dat
+#| tbl-cap: "Table A1: Size information for our study's sample"
 refinitiv %>% 
   filter(RIC %in% sample_dat$Identifier.RIC) %>%
   select(Name,MktCap,RevenueFY0,RevenueFY1) %>%
@@ -456,6 +397,70 @@ library(treemapify)
 refinitiv %>% 
   mutate(Our_Study=if_else(RIC %in% sample_dat$Identifier.RIC,"This Study","Rest of A&D industry")) %>%
   ggplot(aes(area=MktCap,fill=Our_Study)) + geom_treemap()
+
+```
+
+
+```{r}
+#| label: fig-prices
+#| fig-cap: "Figure A3: Price series levels"
+dat %>%
+  ggplot(aes(x=Date,y=price,color=country)) + geom_line() + 
+  facet_wrap(~stock,scales = "free_y") +
+  theme(text = element_text(size=6),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45)) +
+  labs(x="")
+```
+
+```{r}
+#| label: fig-rtns
+#| fig-cap: "Figure A3: Daily log returns"
+dat %>%
+  ggplot(aes(x=Date,y=return,color=country)) + geom_line() + 
+  facet_wrap(~stock) +
+  scale_color_brewer(type='qual',palette = "Set2") +
+  theme(text = element_text(size=6),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45)) +
+  labs(x="")
+```
+
+```{r }
+#| label: fig-vols
+#| fig-cap: " Figure A4: Daily Volatilities"
+dat %>%
+  ggplot(aes(x=Date,y=volatility,color=country)) + geom_line() + 
+  facet_wrap(~stock) +
+  scale_color_brewer(type='qual',palette = "Set2") +
+  theme(text = element_text(size=6),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45)) +
+  labs(x="")
+```
+
+```{r}
+#| label: tbl-sumrtn
+#| tbl-cap: "Table A2: Summary statistics of daily returns"
+docxtractr::read_docx(path = "spilloverV3.docx")-> spill_doc
+spill_doc |>
+  docxtractr::docx_extract_all_tbls() %>%
+  {.[[3]]} -> tblsumrtns
+spill_doc |>
+  docxtractr::docx_extract_all_tbls() %>%
+  {.[[4]]} -> tblsumvol
+names(tblsumrtns)[1]<-"A&D Stock"
+tblsumrtns |> kbl(format = "latex",booktabs = TRUE) |> kable_styling(latex_options = c("scale_down","HOLD_position"))
+```
+
+```{r}
+#| label: tbl-sumvol
+#| tbl-cap: "Table A3: Summary statistics of daily volatilies"
+names(tblsumvol)[1]<-"A&D Stock"
+tblsumvol |> kbl(format = "latex",booktabs = TRUE) |> kable_styling(latex_options = c("scale_down","HOLD_position"))
 ```
 
 
