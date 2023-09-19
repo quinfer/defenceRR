@@ -1,0 +1,13 @@
+---
+title: "authors statements"
+format: pdf
+editor: visual
+---
+
+Elie Bouri: Conceptualization; Data curation; Formal analysis; Methodology; Writing - original draft; Writing - Review & Editing;
+
+Barry Quinn: Conceptualization; Visualization; Methodology; Writing - original draft; Writing - Review & Editing;
+
+Lisa Sheenan: Conceptualization; Visualization; Writing - original draft; Writing - Review & Editing;
+
+Yayan Tang:  Methodology; Formal analysis; Writing - original draft; Writing - Review & Editing.

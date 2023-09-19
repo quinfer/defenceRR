@@ -1,0 +1,30 @@
+---
+title: "Investigating Extreme Linkage Topology in the Aerospace and Defence Industry"
+author: 
+  - name: "Elie Bouri"
+    email: elie.elbouri@lau.edu.lb 
+    affiliations: "School of Business, Lebanese American University, Lebanon"
+  - name: "Barry Quinn"
+    email: b.quinn@qub.ac.uk 
+    affiliations: "Queen's Business School, Belfast, Northern Ireland"
+  - name: "Lisa Sheenan"
+    email: b.quinn@qub.ac.uk 
+    affiliations: "Queen's Business School, Belfast, Northern Ireland"
+  - name: "Yayan Tang"
+    email: yayan_tang@163.com
+    attributes:
+      corresponding: true
+    affiliations: "School of Accounting, Nanjing University of Finance and Economics, 3rd Wenyuan Road, Nanjing, Jiangsu, China, 210023"
+format:
+  elsevier-pdf:
+    keep-tex: true  
+    journal:
+      name: International Review of Financial Analysis
+      highlights: 
+        - "Study extreme return and volatility spillovers among 21 global A&D companies."
+        - "Spillovers intensified during the COVID-19 pandemic and Russia-Ukraine war periods."
+        - "Volatility spillover is high at the upper quantile and exhibits low variability."
+        - "Chinese A&D stocks offer diversification benefits under normal conditions."
+        - "Geopolitical risk drives both spillovers, especially during crisis periods."  
+
+---
